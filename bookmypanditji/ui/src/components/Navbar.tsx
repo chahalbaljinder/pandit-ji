@@ -45,12 +45,23 @@ export default function Navbar() {
               <Link href="/pandits" className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-orange-600">
                 Find Pandits
               </Link>
+              <Link href="/products" className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-orange-600">
+                Products
+              </Link>
               <Link href="/about" className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-orange-600">
                 About Us
               </Link>
             </div>
             
             <div className="flex items-center">
+              {/* Register as Pandit button */}
+              <Link 
+                href="/register-pandit" 
+                className="mr-4 bg-orange-100 hover:bg-orange-200 text-orange-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Register as Pandit
+              </Link>
+              
               {/* User Profile Icon & Dropdown */}
               <div className="ml-4 relative flex-shrink-0" ref={dropdownRef}>
                 <div>
@@ -192,11 +203,25 @@ export default function Navbar() {
             Find Pandits
           </Link>
           <Link 
+            href="/products"
+            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Products
+          </Link>
+          <Link 
             href="/about"
             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600"
             onClick={() => setIsMenuOpen(false)}
           >
             About Us
+          </Link>
+          <Link 
+            href="/register-pandit"
+            className="block px-3 py-2 rounded-md text-base font-medium text-orange-600 hover:bg-orange-50"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Register as Pandit
           </Link>
         </div>
         
