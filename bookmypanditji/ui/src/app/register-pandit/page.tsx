@@ -37,7 +37,7 @@ export default function RegisterPanditPage() {
               </div>
               
               <div className="p-6">
-                <PanditRegistrationForm onRegistrationComplete={handleRegistrationComplete} />
+                <PanditRegistrationForm onRegistrationCompleteAction={handleRegistrationComplete} />
               </div>
             </>
           ) : (

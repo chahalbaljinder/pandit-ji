@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import BookingForm from '@/components/BookingForm';
 import BookingConfirmation from '@/components/BookingConfirmation';
@@ -374,11 +373,10 @@ export default function PanditProfile() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                </div>
-                <BookingForm 
+                </div>                <BookingForm 
                   panditId={pandit.id} 
                   services={pandit.services}
-                  onBookingComplete={handleBookingComplete}
+                  onBookingCompleteAction={handleBookingComplete}
                 />
               </div>
             ) : (

@@ -11,10 +11,10 @@ type Service = {
 type BookingFormProps = {
   panditId: number;
   services: Service[];
-  onBookingComplete: () => void;
+  onBookingCompleteAction: () => void;
 };
 
-export default function BookingForm({ panditId, services, onBookingComplete }: BookingFormProps) {
+export default function BookingForm({ panditId, services, onBookingCompleteAction }: BookingFormProps) {
   const [selectedService, setSelectedService] = useState<string>(services[0]?.name || '');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
@@ -77,7 +77,7 @@ export default function BookingForm({ panditId, services, onBookingComplete }: B
       });
       
       setLoading(false);
-      onBookingComplete();
+      onBookingCompleteAction();
     }, 1500);
   };
 

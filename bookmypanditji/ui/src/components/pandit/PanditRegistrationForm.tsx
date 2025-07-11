@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 // Types for form data
 type PanditRegistrationData = {
@@ -46,6 +45,8 @@ type PanditRegistrationData = {
   };
 };
 
+type ArrayFields = 'specializations' | 'languages' | 'availableDays' | 'availableTimeSlots' | 'serviceLocations';
+
 // Available specializations
 const availableSpecializations = [
   'Griha Pravesh', 'Satyanarayan Puja', 'Wedding Ceremonies', 
@@ -81,12 +82,10 @@ const timeSlots = [
 
 // Props for the component
 type PanditRegistrationFormProps = {
-  onRegistrationComplete: (data: PanditRegistrationData) => void;
+  onRegistrationCompleteAction: (data: PanditRegistrationData) => void;
 };
 
-export default function PanditRegistrationForm({ onRegistrationComplete }: PanditRegistrationFormProps) {
-  const router = useRouter();
-  
+export default function PanditRegistrationForm({ onRegistrationCompleteAction }: PanditRegistrationFormProps) {
   // Form step state
   const [currentStep, setCurrentStep] = useState(1);
   
@@ -151,7 +150,12 @@ export default function PanditRegistrationForm({ onRegistrationComplete }: Pandi
   };
   
   // Handle nested input change
-  const handleNestedInputChange = (section: keyof PanditRegistrationData, parentField: string, field: string, value: number) => {
+  const handleNestedInputChange = (
+    section: 'serviceInfo',
+    parentField: 'baseFees',
+    field: 'regular' | 'premium',
+    value: number
+  ) => {
     setFormData({
       ...formData,
       [section]: {
@@ -163,15 +167,22 @@ export default function PanditRegistrationForm({ onRegistrationComplete }: Pandi
       },
     });
   };
-  
   // Handle checkbox arrays (specializations, languages, etc.)
-  const handleCheckboxChange = (section: keyof PanditRegistrationData, field: string, value: string, checked: boolean) => {
+  const handleCheckboxChange = (
+    section: 'professionalInfo' | 'serviceInfo',
+    field: ArrayFields,
+    value: string,
+    checked: boolean
+  ) => {
+    const sectionData = formData[section];
+    const currentValue = field in sectionData ? (sectionData as any)[field] as string[] : [];
+    
     if (checked) {
       setFormData({
         ...formData,
         [section]: {
           ...formData[section],
-          [field]: [...formData[section][field], value],
+          [field]: [...currentValue, value],
         },
       });
     } else {
@@ -179,7 +190,7 @@ export default function PanditRegistrationForm({ onRegistrationComplete }: Pandi
         ...formData,
         [section]: {
           ...formData[section],
-          [field]: formData[section][field].filter((item) => item !== value),
+          [field]: currentValue.filter((item) => item !== value),
         },
       });
     }
@@ -358,7 +369,7 @@ export default function PanditRegistrationForm({ onRegistrationComplete }: Pandi
         await new Promise((resolve) => setTimeout(resolve, 1500));
         
         // Pass the data back to the parent component
-        onRegistrationComplete(formData);
+        onRegistrationCompleteAction(formData);
       } catch (error) {
         console.error('Error registering pandit:', error);
       } finally {

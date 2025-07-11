@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import UserRegistrationForm from '@/components/user/UserRegistrationForm';
 import UserRegistrationComplete from '@/components/user/UserRegistrationComplete';
+import type { FormData } from '@/components/user/UserRegistrationForm';
 
 export default function ProfilePage() {
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState<FormData | null>(null);
   
   // This function will be passed to the UserRegistrationForm component
-  const handleRegistrationComplete = (data: any) => {
+  const handleRegistrationComplete = async (data: FormData) => {
     setUserData(data);
     setIsRegistrationComplete(true);
   };
@@ -28,7 +29,7 @@ export default function ProfilePage() {
                 and important festival reminders.
               </p>
               
-              <UserRegistrationForm onRegistrationComplete={handleRegistrationComplete} />
+              <UserRegistrationForm onRegistrationCompleteAction={handleRegistrationComplete} />
             </div>
           </div>
         ) : (

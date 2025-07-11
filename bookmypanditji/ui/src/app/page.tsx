@@ -1,14 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import ChatBot from '@/components/ChatBot';
 import PanchangCalendar from '@/components/panchang/PanchangCalendar';
-
-// Placeholder for framer-motion import
-// In production, use actual framer-motion with proper imports
-const motion = {
-  div: (props: any) => <div {...props}>{props.children}</div>
-};
 
 // Mock data for featured services
 const featuredServices = [

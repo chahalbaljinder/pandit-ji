@@ -197,11 +197,9 @@ export default function PanchangCalendar() {
       </div>
     );
   };
-  
   const renderCalendarDays = () => {
     const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     
     // Create array of empty days for padding
     const emptyCells = Array(firstDayOfMonth).fill(null);

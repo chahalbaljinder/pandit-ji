@@ -48,7 +48,7 @@ type NotificationPreferences = {
   reminderFrequency: string;
 };
 
-type FormData = {
+export type FormData = {
   basicInfo: BasicInfo;
   address: Address;
   familyDetails: FamilyDetails;
@@ -59,10 +59,10 @@ type FormData = {
 type FormStep = 'basicInfo' | 'address' | 'familyDetails' | 'religiousPreferences' | 'notificationPreferences';
 
 type UserRegistrationFormProps = {
-  onRegistrationComplete: (data: FormData) => void;
+  onRegistrationCompleteAction: (data: FormData) => Promise<void>;
 };
 
-export default function UserRegistrationForm({ onRegistrationComplete }: UserRegistrationFormProps) {
+export default function UserRegistrationForm({ onRegistrationCompleteAction }: UserRegistrationFormProps) {
   const [currentStep, setCurrentStep] = useState<FormStep>('basicInfo');
   const [formData, setFormData] = useState<Partial<FormData>>({});
   const [familyMemberCount, setFamilyMemberCount] = useState(1);
@@ -87,7 +87,7 @@ export default function UserRegistrationForm({ onRegistrationComplete }: UserReg
   const { register, handleSubmit, formState: { errors }, watch, setValue } = methods;
   const maritalStatus = watch('familyDetails.maritalStatus');
   
-  const handleStepSubmit: SubmitHandler<any> = (data) => {
+  const handleStepSubmit: SubmitHandler<any> = async (data) => {
     const updatedFormData = { ...formData, [currentStep]: data[currentStep] };
     setFormData(updatedFormData);
 
@@ -106,7 +106,7 @@ export default function UserRegistrationForm({ onRegistrationComplete }: UserReg
         setCurrentStep('notificationPreferences');
         break;
       case 'notificationPreferences':
-        onRegistrationComplete(updatedFormData as FormData);
+        await onRegistrationCompleteAction(updatedFormData as FormData);
         break;
     }
   };

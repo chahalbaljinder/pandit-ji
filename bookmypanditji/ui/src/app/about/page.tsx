@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import Link from 'next/link';
 
 export default function AboutPage() {
   return (
@@ -96,15 +96,14 @@ export default function AboutPage() {
         </div>
 
         {/* Our Pandits */}
-        <div className="mb-16">
-          <div className="flex justify-between items-center mb-8">
+        <div className="mb-16">          <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold">Our Verified Pandits</h2>
-            <a href="/pandits" className="text-orange-600 hover:text-orange-700 flex items-center">
+            <Link href="/pandits" className="text-orange-600 hover:text-orange-700 flex items-center">
               View All Pandits
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
               </svg>
-            </a>
+            </Link>
           </div>
           <div className="bg-white p-8 rounded-lg shadow-md">
             <div className="text-center mb-8">

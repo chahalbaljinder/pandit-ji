@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -110,6 +109,14 @@ const PRODUCTS: Product[] = [
 ];
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-8">Loading products...</div>}>
+      <ProductList />
+    </Suspense>
+  );
+}
+
+function ProductList() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -173,27 +180,26 @@ export default function ProductsPage() {
       setCompareList(JSON.parse(savedCompareList));
     }
   }, [searchParams]);
-
   // Update URL when filters change
-  const updateQueryParams = () => {
-    const params = new URLSearchParams();
-    if (selectedCategory !== 'all') params.append('category', selectedCategory);
-    if (sortBy !== 'default') params.append('sort', sortBy);
-    if (minPrice > 0) params.append('minPrice', minPrice.toString());
-    if (maxPrice < 3000) params.append('maxPrice', maxPrice.toString());
-    if (inStockOnly) params.append('inStock', 'true');
-    if (searchQuery) params.append('search', searchQuery);
-    if (currentPage > 1) params.append('page', currentPage.toString());
-
-    router.push(`/products?${params.toString()}`);
-  };
-
   useEffect(() => {
     // Update URL when filters change, but only after initial render
     if (typeof window !== 'undefined') {
+      const updateQueryParams = () => {
+        const params = new URLSearchParams();
+        if (selectedCategory !== 'all') params.append('category', selectedCategory);
+        if (sortBy !== 'default') params.append('sort', sortBy);
+        if (minPrice > 0) params.append('minPrice', minPrice.toString());
+        if (maxPrice < 3000) params.append('maxPrice', maxPrice.toString());
+        if (inStockOnly) params.append('inStock', 'true');
+        if (searchQuery) params.append('search', searchQuery);
+        if (currentPage > 1) params.append('page', currentPage.toString());
+    
+        router.push(`/products?${params.toString()}`);
+      };
+      
       updateQueryParams();
     }
-  }, [selectedCategory, sortBy, minPrice, maxPrice, inStockOnly, searchQuery, currentPage]);
+  }, [selectedCategory, sortBy, minPrice, maxPrice, inStockOnly, searchQuery, currentPage, router]);
 
   // Toggle wishlist item
   const toggleWishlist = (productId: string) => {
