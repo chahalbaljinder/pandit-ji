@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
 import { PrismaModule } from '../../shared/prisma/prisma.module';
@@ -17,7 +17,7 @@ import { ChatModule } from '../chat/chat.module';
     PanditsModule,
     ServicesModule,
     NotificationsModule,
-    ChatModule,
+    forwardRef(() => ChatModule),
   ],
   controllers: [BookingsController],
   providers: [BookingsService],
