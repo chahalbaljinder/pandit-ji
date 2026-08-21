@@ -312,7 +312,7 @@ export class AuthService {
   }
 
   private sanitizeUser(user: User): Partial<User> {
-    const { passwordHash, mfaSecret, backupCodes, refreshTokens, ...sanitized } = user;
+    const { passwordHash, mfaSecret, backupCodes, ...sanitized } = user;
     return sanitized;
   }
 }

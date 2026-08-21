@@ -121,8 +121,11 @@ export class ServicesService {
       if (maxPrice) where.basePrice.lte = maxPrice;
     }
 
-    const orderBy: Prisma.ServiceOrderByWithRelationInput = {};
-    orderBy[sortBy] = sortOrder;
+    const orderBy: Prisma.ServiceOrderByWithRelationInput = (() => {
+      const obj: Record<string, 'asc' | 'desc'> = {};
+      obj[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
+      return obj as Prisma.ServiceOrderByWithRelationInput;
+    })();
 
     const [services, total] = await Promise.all([
       this.prisma.service.findMany({

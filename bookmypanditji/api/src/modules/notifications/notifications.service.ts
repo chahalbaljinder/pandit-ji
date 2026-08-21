@@ -48,7 +48,7 @@ export class NotificationsService {
     return result.count;
   }
 
-  async findByUser(userId: string, params: { page: number; limit: number; status?: NotificationStatus }) {
+  async findByUser(userId: string, params: { page?: number; limit?: number; status?: NotificationStatus }) {
     const { page = 1, limit = 20, status } = params;
     const skip = (page - 1) * limit;
 

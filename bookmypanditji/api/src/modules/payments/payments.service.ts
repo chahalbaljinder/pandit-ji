@@ -99,7 +99,7 @@ export class PaymentsService {
             status: PaymentStatus.COMPLETED,
             providerPaymentId: paymentEntity.id,
             paidAt: new Date(),
-            metadata: { ...payment.metadata, razorpay: paymentEntity },
+            metadata: { ...(payment.metadata as object || {}), razorpay: paymentEntity },
           },
         });
 
@@ -157,7 +157,7 @@ export class PaymentsService {
         status: PaymentStatus.REFUNDED,
         refundedAt: new Date(),
         refundReason: reason,
-        metadata: { ...payment.metadata, refund: { reason, adminId, refundedAt: new Date() } },
+        metadata: { ...(payment.metadata as object || {}), refund: { reason, adminId, refundedAt: new Date() } },
       },
     });
 

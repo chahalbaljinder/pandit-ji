@@ -153,7 +153,9 @@ export class PanditsService {
     }
 
     await this.redis.del(`pandit:profile:${panditId}`);
-    return this.getProfile(panditId);
+    const profile = await this.getProfile(panditId);
+    if (!profile) throw new NotFoundException('Pandit profile not found');
+    return profile;
   }
 
   async searchPandits(dto: PanditSearchDto) {
@@ -177,12 +179,16 @@ export class PanditsService {
       where.baseLongitude = { not: null };
     }
 
-    const orderBy: Prisma.PanditOrderByWithRelationInput = {};
-    if (sortBy === 'rating') orderBy.rating = sortOrder;
-    else if (sortBy === 'price') orderBy.basePrice = sortOrder;
-    else if (sortBy === 'experience') orderBy.experienceYears = sortOrder;
-    else if (sortBy === 'bookings') orderBy.totalBookings = sortOrder;
-    else orderBy.rating = 'desc';
+    const orderBy: Prisma.PanditOrderByWithRelationInput = (() => {
+      const obj: Record<string, 'asc' | 'desc'> = {};
+      const validSortOrder = sortOrder === 'asc' ? 'asc' : 'desc';
+      if (sortBy === 'rating') obj.rating = validSortOrder;
+      else if (sortBy === 'price') obj.basePrice = validSortOrder;
+      else if (sortBy === 'experience') obj.experienceYears = validSortOrder;
+      else if (sortBy === 'bookings') obj.totalBookings = validSortOrder;
+      else obj.rating = 'desc';
+      return obj as Prisma.PanditOrderByWithRelationInput;
+    })();
 
     const [pandits, total] = await Promise.all([
       this.prisma.pandit.findMany({

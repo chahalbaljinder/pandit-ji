@@ -120,8 +120,11 @@ export class ProductsService {
     }
     if (inStock) where.stockQuantity = { gt: 0 };
 
-    const orderBy: Prisma.ProductOrderByWithRelationInput = {};
-    orderBy[sortBy] = sortOrder;
+    const orderBy: Prisma.ProductOrderByWithRelationInput = (() => {
+      const obj: Record<string, 'asc' | 'desc'> = {};
+      obj[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
+      return obj as Prisma.ProductOrderByWithRelationInput;
+    })();
 
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({ where, skip, take: limit, orderBy }),

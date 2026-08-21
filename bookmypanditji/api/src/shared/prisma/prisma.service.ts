@@ -1,21 +1,26 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { PrismaClient, LogLevel } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const logLevels: LogLevel[] = ['error', 'warn'];
-    if (process.env.NODE_ENV !== 'production') {
-      logLevels.push('query', 'info');
-    }
+    const isDev = process.env.NODE_ENV !== 'production';
+    const logLevels: Prisma.LogDefinition[] = isDev
+      ? [
+          { level: 'query', emit: 'event' },
+          { level: 'info', emit: 'event' },
+          { level: 'warn', emit: 'event' },
+          { level: 'error', emit: 'event' },
+        ]
+      : [
+          { level: 'warn', emit: 'event' },
+          { level: 'error', emit: 'event' },
+        ];
 
     super({
-      log: logLevels.map((level) => ({
-        emit: 'event',
-        level,
-      })),
+      log: logLevels,
     });
   }
 
@@ -23,14 +28,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$connect();
     this.logger.log('Database connected successfully');
 
-    // Log queries in development
     if (process.env.NODE_ENV !== 'production') {
-      this.$on('query', (e) => {
+      (this as any).$on('query', (e: any) => {
         this.logger.debug(`Query: ${e.query} | Params: ${e.params} | Duration: ${e.duration}ms`);
       });
     }
 
-    this.$on('error', (e) => {
+    (this as any).$on('error', (e: any) => {
       this.logger.error('Database error:', e);
     });
   }
@@ -48,8 +52,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       (key) => typeof key === 'string' && !key.startsWith('_') && !key.startsWith('$'),
     );
     for (const model of models) {
-      if (typeof this[model as string]?.deleteMany === 'function') {
-        await this[model as string].deleteMany();
+      if (typeof (this as any)[model]?.deleteMany === 'function') {
+        await (this as any)[model].deleteMany();
       }
     }
   }

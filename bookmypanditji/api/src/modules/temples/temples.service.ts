@@ -74,8 +74,11 @@ export class TemplesService {
       ];
     }
 
-    const orderBy: Prisma.TempleOrderByWithRelationInput = {};
-    orderBy[sortBy] = sortOrder;
+    const orderBy: Prisma.TempleOrderByWithRelationInput = (() => {
+      const obj: Record<string, 'asc' | 'desc'> = {};
+      obj[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
+      return obj as Prisma.TempleOrderByWithRelationInput;
+    })();
 
     const [temples, total] = await Promise.all([
       this.prisma.temple.findMany({ where, skip, take: limit, orderBy }),

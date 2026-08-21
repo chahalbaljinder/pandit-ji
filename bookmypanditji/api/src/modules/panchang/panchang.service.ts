@@ -52,7 +52,7 @@ export class PanchangService {
     const fromDate = new Date();
     const toDate = new Date(Date.now() + days * 86400000);
     return this.prisma.panchangEntry.findMany({
-      where: { date: { gte: fromDate, lte: toDate }, festivals: { not: { equals: [] } } },
+      where: { date: { gte: fromDate, lte: toDate }, festivals: { isEmpty: false } },
       orderBy: { date: 'asc' },
       select: { date: true, festivals: true, vrats: true },
     });

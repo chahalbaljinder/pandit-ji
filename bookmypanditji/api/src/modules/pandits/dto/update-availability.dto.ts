@@ -1,6 +1,6 @@
-import { IsOptional, ValidateNested } from 'class-validator';
+import { IsOptional, ValidateNested, IsArray, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class TimeSlotDto {
   @ApiProperty()
@@ -19,5 +19,7 @@ export class UpdateAvailabilityDto {
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   blockedDates?: string[];
 }

@@ -51,7 +51,7 @@ export class BookingsService {
 
     // Calculate samagri price
     let samagriPrice = 0;
-    const samagriItems = [];
+    const samagriItems: Array<{ productId: string; quantity: number; unitPrice: any; totalPrice: any }> = [];
     if (dto.samagriItems?.length) {
       for (const item of dto.samagriItems) {
         const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
@@ -166,7 +166,7 @@ export class BookingsService {
     if (!booking) throw new NotFoundException('Booking not found');
 
     // Only allow certain updates based on status
-    const allowedStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
+    const allowedStatuses: BookingStatus[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
     if (!allowedStatuses.includes(booking.status)) {
       throw new BadRequestException('Cannot update booking in current status');
     }
@@ -201,7 +201,7 @@ export class BookingsService {
     const booking = await this.findById(id, userId);
     if (!booking) throw new NotFoundException('Booking not found');
 
-    const cancellableStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
+    const cancellableStatuses: BookingStatus[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
     if (!cancellableStatuses.includes(booking.status)) {
       throw new BadRequestException('Cannot cancel booking in current status');
     }
@@ -326,8 +326,11 @@ export class BookingsService {
       if (toDate) where.bookingDate.lte = new Date(toDate);
     }
 
-    const orderBy: Prisma.BookingOrderByWithRelationInput = {};
-    orderBy[sortBy] = sortOrder;
+    const orderBy: Prisma.BookingOrderByWithRelationInput = (() => {
+      const obj: Record<string, 'asc' | 'desc'> = {};
+      obj[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
+      return obj as Prisma.BookingOrderByWithRelationInput;
+    })();
 
     const [bookings, total] = await Promise.all([
       this.prisma.booking.findMany({
