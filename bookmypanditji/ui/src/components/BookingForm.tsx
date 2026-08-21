@@ -1,21 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/providers/AuthProvider';
+import { useCreateBooking, useServices, usePanditProfile } from '@/hooks/useApi';
+import { CreateBookingDto } from '@/lib/api';
 
 type Service = {
+  id: string;
   name: string;
   description: string;
   price: number;
+  basePrice: string;
+  durationMinutes: number;
 };
 
 type BookingFormProps = {
-  panditId: number;
-  services: Service[];
+  panditId: string;
+  preselectedServiceId?: string;
   onBookingCompleteAction: () => void;
 };
 
-export default function BookingForm({ panditId, services, onBookingCompleteAction }: BookingFormProps) {
-  const [selectedService, setSelectedService] = useState<string>(services[0]?.name || '');
+export default function BookingForm({ panditId, preselectedServiceId, onBookingCompleteAction }: BookingFormProps) {
+  const { isAuthenticated } = useAuth();
+  const { data: panditProfile } = usePanditProfile(panditId);
+  const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 50 });
+  const createBooking = useCreateBooking();
+
+  const services = servicesResponse?.data || [];
+  
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [address, setAddress] = useState<string>('');
@@ -26,18 +39,53 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
   const [locationType, setLocationType] = useState<'home' | 'temple' | 'custom'>('home');
   const [includeSamagri, setIncludeSamagri] = useState(false);
 
+  // Set preselected service
+  useEffect(() => {
+    if (preselectedServiceId) {
+      setSelectedServiceId(preselectedServiceId);
+    } else if (services.length > 0 && !selectedServiceId) {
+      setSelectedServiceId(services[0].id);
+    }
+  }, [preselectedServiceId, services]);
+
+  // Get pandit's services for availability
+  const panditServices = panditProfile?.services || [];
+  const panditServiceIds = new Set(panditServices.map((ps: any) => ps.serviceId));
+
+  // Filter services to only those offered by this pandit
+  const availableServices = services.filter(s => panditServiceIds.has(s.id));
+
   const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setDate(tomorrow.getDate() + (bookingType === 'premium' ? 0 : 1));
   const minDate = tomorrow.toISOString().split('T')[0];
 
   const threeMonthsLater = new Date();
   threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
   const maxDate = threeMonthsLater.toISOString().split('T')[0];
 
+  const selectedService = services.find(s => s.id === selectedServiceId);
+  const panditService = panditServices.find((ps: any) => ps.serviceId === selectedServiceId);
+  const basePrice = panditService ? Number(panditService.price) : (selectedService ? Number(selectedService.basePrice) : 0);
+
+  // Helper functions inside component
+  const getServicePrice = () => {
+    const premiumMultiplier = bookingType === 'premium' ? 1.5 : 1;
+    const samagriCost = includeSamagri ? basePrice * 0.2 : 0;
+    return (basePrice * premiumMultiplier) + samagriCost;
+  };
+
+  const getPlatformFee = () => {
+    return Math.round(getServicePrice() * 0.1);
+  };
+
+  const getTotalAmount = () => {
+    return getServicePrice() + getPlatformFee();
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!selectedService) newErrors.service = 'Please select a service';
+    if (!selectedServiceId) newErrors.service = 'Please select a service';
     if (!selectedDate) newErrors.date = 'Please select a date';
     if (!selectedTime) newErrors.time = 'Please select a time';
     if (!address.trim()) newErrors.address = 'Please enter venue address';
@@ -56,72 +104,53 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isAuthenticated) {
+      setErrors({ auth: 'Please login to book a service' });
+      return;
+    }
     
     if (!validateForm()) return;
     
     setLoading(true);
-    
-    setTimeout(() => {
-      console.log({
-        panditId,
-        service: selectedService,
-        bookingType,
-        locationType,
-        includeSamagri,
-        date: selectedDate,
-        time: selectedTime,
-        address,
-        requirements,
-      });
-      
-      setLoading(false);
+    setErrors({});
+
+    try {
+      const bookingData: CreateBookingDto = {
+        serviceId: selectedServiceId,
+        panditId: panditId,
+        bookingDate: selectedDate,
+        startTime: selectedTime,
+        endTime: selectedTime, // Will be calculated based on duration
+        timezone: 'Asia/Kolkata',
+        venueType: locationType.toUpperCase() as any,
+        venueAddress: address,
+        landmark: requirements,
+        samagriItems: includeSamagri ? [] : undefined, // Will be handled separately
+      };
+
+      await createBooking.mutateAsync(bookingData);
       onBookingCompleteAction();
-    }, 1500);
-  };
-
-  const getServicePrice = () => {
-    const service = services.find(s => s.name === selectedService);
-    const basePrice = service ? service.price : 0;
-    
-    const premiumMultiplier = bookingType === 'premium' ? 1.5 : 1;
-    const samagriCost = includeSamagri ? basePrice * 0.2 : 0;
-    
-    return (basePrice * premiumMultiplier) + samagriCost;
-  };
-
-  const getPlatformFee = () => {
-    return Math.round(getServicePrice() * 0.05);
-  };
-
-  const getTotalAmount = () => {
-    return getServicePrice() + getPlatformFee();
-  };
-
-  const getTimeSlots = () => {
-    if (bookingType === 'premium') {
-      return (
-        <>
-          <option value="">Select time slot</option>
-          <option value="early_morning">Early Morning (4:00 AM - 6:00 AM)</option>
-          <option value="morning">Morning (6:00 AM - 10:00 AM)</option>
-          <option value="afternoon">Afternoon (11:00 AM - 2:00 PM)</option>
-          <option value="evening">Evening (4:00 PM - 8:00 PM)</option>
-          <option value="night">Night (8:00 PM - 11:00 PM)</option>
-        </>
-      );
-    } else {
-      return (
-        <>
-          <option value="">Select time slot</option>
-          <option value="morning">Morning (6:00 AM - 10:00 AM)</option>
-          <option value="afternoon">Afternoon (11:00 AM - 2:00 PM)</option>
-          <option value="evening">Evening (4:00 PM - 8:00 PM)</option>
-        </>
-      );
+    } catch (error: any) {
+      setErrors({ submit: error.response?.data?.message || 'Failed to create booking. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (servicesLoading) {
+    return <div className="space-y-4">Loading services...</div>;
+  }
+
+  if (availableServices.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        This pandit doesn't offer any services from our catalog yet.
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -135,7 +164,7 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-medium text-gray-800">Normal Booking</h3>
               {bookingType === 'normal' && (
-                <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               )}
@@ -151,7 +180,7 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-medium text-gray-800">Premium Booking</h3>
               {bookingType === 'premium' && (
-                <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               )}
@@ -167,13 +196,14 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
         <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-1">Select Service</label>
         <select 
           id="service" 
-          value={selectedService}
-          onChange={(e) => setSelectedService(e.target.value)}
+          value={selectedServiceId}
+          onChange={(e) => setSelectedServiceId(e.target.value)}
           className={`block w-full rounded-md border-${errors.service ? 'red-300' : 'gray-300'} shadow-sm focus:border-orange-500 focus:ring-orange-500`}
         >
-          {services.map((service, index) => (
-            <option key={index} value={service.name}>
-              {service.name} - ₹{service.price}
+          <option value="">Select a service</option>
+          {availableServices.map((service) => (
+            <option key={service.id} value={service.id}>
+              {service.name} - ₹{service.basePrice}
             </option>
           ))}
         </select>
@@ -229,7 +259,10 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
           onChange={(e) => setSelectedTime(e.target.value)}
           className={`block w-full rounded-md border-${errors.time ? 'red-300' : 'gray-300'} shadow-sm focus:border-orange-500 focus:ring-orange-500`}
         >
-          {getTimeSlots()}
+          <option value="">Select time slot</option>
+          <option value="06:00">Morning (6:00 AM - 10:00 AM)</option>
+          <option value="11:00">Afternoon (11:00 AM - 2:00 PM)</option>
+          <option value="16:00">Evening (4:00 PM - 8:00 PM)</option>
         </select>
         {errors.time && <p className="mt-1 text-sm text-red-600">{errors.time}</p>}
       </div>
@@ -281,7 +314,7 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
       <div className="pt-2">
         <div className="flex justify-between mb-2">
           <span className="text-gray-600">Service Fee:</span>
-          <span className="font-semibold">₹{getServicePrice().toFixed(2)}</span>
+          <span className="font-semibold">₹{basePrice.toFixed(2)}</span>
         </div>
         
         {bookingType === 'premium' && (
@@ -299,8 +332,8 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
         )}
         
         <div className="flex justify-between mb-2">
-          <span className="text-gray-600">Platform Fee:</span>
-          <span className="font-semibold">₹{getPlatformFee().toFixed(2)}</span>
+          <span className="text-gray-600">Platform Fee (10%):</span>
+          <span className="font-semibold">₹{Math.round(getServicePrice() * 0.1).toFixed(2)}</span>
         </div>
         
         <div className="flex justify-between mb-4 pt-2 border-t border-gray-200">
@@ -311,10 +344,10 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
       
       <button 
         type="submit" 
-        disabled={loading}
-        className="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition flex items-center justify-center"
+        disabled={loading || createBooking.isPending}
+        className="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition flex items-center justify-center disabled:opacity-50"
       >
-        {loading ? (
+        {loading || createBooking.isPending ? (
           <>
             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -324,6 +357,12 @@ export default function BookingForm({ panditId, services, onBookingCompleteActio
           </>
         ) : 'Proceed to Payment'}
       </button>
+      
+      {createBooking.isError && (
+        <p className="text-sm text-red-600 text-center mt-2">
+          {createBooking.error?.response?.data?.message || 'Failed to create booking. Please try again.'}
+        </p>
+      )}
       
       <p className="text-xs text-gray-500 text-center mt-2">
         You won't be charged yet. Price will be confirmed after booking details are reviewed.

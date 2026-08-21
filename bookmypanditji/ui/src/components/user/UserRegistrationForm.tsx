@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
+import { useRegister, useAuth } from '@/hooks/useApi';
+import { RegisterDto } from '@/lib/api';
 
 // Types for the form data
 type BasicInfo = {
@@ -66,6 +68,10 @@ export default function UserRegistrationForm({ onRegistrationCompleteAction }: U
   const [currentStep, setCurrentStep] = useState<FormStep>('basicInfo');
   const [formData, setFormData] = useState<Partial<FormData>>({});
   const [familyMemberCount, setFamilyMemberCount] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { register: authRegister } = useAuth();
+  const registerMutation = useRegister();
 
   const methods = useForm<FormData>({
     defaultValues: {
@@ -106,8 +112,34 @@ export default function UserRegistrationForm({ onRegistrationCompleteAction }: U
         setCurrentStep('notificationPreferences');
         break;
       case 'notificationPreferences':
-        await onRegistrationCompleteAction(updatedFormData as FormData);
+        await submitRegistration(updatedFormData as FormData);
         break;
+    }
+  };
+
+  const submitRegistration = async (data: FormData) => {
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const registerData: RegisterDto = {
+        name: data.basicInfo.name,
+        email: data.basicInfo.email,
+        phone: data.basicInfo.phone,
+        password: data.basicInfo.password, // This would need to be added to basicInfo
+        role: 'USER',
+        dateOfBirth: data.basicInfo.dateOfBirth,
+        gender: data.basicInfo.gender as any,
+      };
+
+      await registerMutation.mutateAsync(registerData);
+      
+      // Registration successful
+      onRegistrationCompleteAction(data);
+    } catch (error: any) {
+      setErrors({ submit: error.response?.data?.message || 'Registration failed. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -214,6 +246,21 @@ export default function UserRegistrationForm({ onRegistrationCompleteAction }: U
                 />
                 {errors.basicInfo?.phone && (
                   <p className="text-red-500 text-xs mt-1">{errors.basicInfo.phone.message as string}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Password *</label>
+                <input
+                  type="password"
+                  {...register('basicInfo.password', { 
+                    required: 'Password is required',
+                    minLength: { value: 8, message: 'Password must be at least 8 characters' }
+                  })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                />
+                {errors.basicInfo?.password && (
+                  <p className="text-red-500 text-xs mt-1">{errors.basicInfo.password.message as string}</p>
                 )}
               </div>
               
@@ -688,6 +735,13 @@ export default function UserRegistrationForm({ onRegistrationCompleteAction }: U
           </div>
         )}
 
+        {/* Submit/Error */}
+        {registerMutation.isError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+            {registerMutation.error?.response?.data?.message || 'Registration failed. Please try again.'}
+          </div>
+        )}
+
         {/* Navigation Buttons */}
         <div className="mt-8 flex justify-between">
           {currentStep !== 'basicInfo' ? (
@@ -699,14 +753,25 @@ export default function UserRegistrationForm({ onRegistrationCompleteAction }: U
               Back
             </button>
           ) : (
-            <div></div> // Empty div to maintain spacing
+            <div></div>
           )}
           
           <button
             type="submit"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+            disabled={loading || registerMutation.isPending}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
           >
-            {currentStep === 'notificationPreferences' ? 'Complete Registration' : 'Continue'}
+            {loading || registerMutation.isPending ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Registering...
+              </>
+            ) : (
+              currentStep === 'notificationPreferences' ? 'Complete Registration' : 'Continue'
+            )}
           </button>
         </div>
       </form>
