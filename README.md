@@ -16,12 +16,13 @@
 
 **BookMyPanditJi** connects devotees with verified Hindu priests (Pandits) for religious ceremonies, pujas, and spiritual services. The platform provides a complete ecosystem: pandit discovery & booking, live temple streaming (darshan), puja samagri marketplace, Hindu calendar (Panchang), and astrological services.
 
-**Current Stage**: Frontend MVP Complete | Backend in Active Development
+**Current Stage**: **Production Ready** - Full-stack application with frontend & backend
 
-- ✅ **Frontend**: Production-ready (Next.js 15, React 19, TypeScript, Tailwind CSS 4)
-- ✅ **UI/UX**: 15+ pages, 20+ components, responsive design system, dark mode
-- 🔄 **Backend**: NestJS + PostgreSQL + Prisma + Redis (in progress)
-- 📋 **Planning**: See [PLANNING.md](PLANNING.md) for detailed roadmap
+- ✅ **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS 4
+- ✅ **Backend**: NestJS 10, Node.js 20, PostgreSQL 15, Prisma ORM, Redis 7
+- ✅ **Real-time**: Socket.io for chat & notifications
+- ✅ **Auth**: JWT with refresh tokens, role-based access
+- ✅ **API Docs**: Swagger at `/docs`
 
 ---
 
@@ -34,13 +35,13 @@
 - **Live Darshan**: Stream major temples via utsav.gov.in integration
 - **Panchang Calendar**: Tithi, festivals, vrats, muhurat, choghadiya
 - **Profile & Kundali**: Birth details, family members, virtual users
-- **Notifications**: WhatsApp, SMS, Email, Push, In-app (planned)
+- **Notifications**: WhatsApp, SMS, Email, Push, In-app (structure ready)
 
 ### For Pandits
 - **Professional Profiles**: Qualifications, specializations, gallery, testimonials
 - **Dedicated Booking Links**: Shareable links for direct yajman booking
 - **Calendar Management**: Availability slots, blocking, service areas
-- **Earnings Dashboard**: Revenue tracking, payment history, analytics (planned)
+- **Earnings Dashboard**: Revenue tracking, payment history, analytics (structure ready)
 
 ### For Administrators
 - **Content Management**: Services, Samagri, Temples, Categories, Articles
@@ -57,6 +58,7 @@
 | **Frontend** | Next.js 15, React 19, TypeScript 5, Tailwind CSS 4 |
 | **UI Components** | shadcn/ui, Headless UI, Heroicons, Framer Motion |
 | **Forms** | React Hook Form + Zod |
+| **State Management** | TanStack Query (React Query) |
 | **Backend** | NestJS 10, Node.js 20 LTS, TypeScript |
 | **Database** | PostgreSQL 15 + Prisma ORM |
 | **Cache/Queue** | Redis 7 (ioredis, BullMQ) |
@@ -76,42 +78,44 @@
 - Node.js 20+, npm 10+
 - Docker & Docker Compose (for database/Redis)
 - PostgreSQL 15+ (or use Docker)
-
-### Frontend Only
-```bash
-cd bookmypanditji/ui
-npm install
-cp .env.example .env.local
-npm run dev
-```
-Open http://localhost:3000
+- Redis 7+ (or use Docker)
 
 ### Full Stack (with Docker)
 ```bash
 # From project root
-docker-compose -f infrastructure/docker/docker-compose.yml up -d
+git clone https://github.com/chahalbaljinder/pandit-ji.git
+cd pandit-ji
 
-# Backend (when ready)
+# Start databases
 cd bookmypanditji/api
-npm install
+docker-compose up -d
+
+# Setup database
 npx prisma migrate dev
 npx prisma db seed
+
+# Start backend (port 4000)
 npm run start:dev
+
+# Frontend (separate terminal, port 3000)
+cd ../ui
+npm run dev
 ```
 
 ### Environment Variables
 ```env
+# Backend (.env)
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bookmypanditji
+REDIS_URL=redis://localhost:6379
+JWT_SECRET=your-super-secret-key-min-32-chars
+RAZORPAY_KEY_ID=rzp_test_xxx
+RAZORPAY_KEY_SECRET=xxx
+
 # Frontend (.env.local)
 NEXT_PUBLIC_API_URL=http://localhost:4000/api
 NEXT_PUBLIC_WS_URL=ws://localhost:4000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# Backend (.env)
-DATABASE_URL=postgresql://user:pass@localhost:5432/bookmypanditji
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-super-secret-key
-RAZORPAY_KEY_ID=your_key
-RAZORPAY_KEY_SECRET=your_secret
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxx
 ```
 
 ---
@@ -124,16 +128,19 @@ pandit-ji/
 │   ├── ui/                    # Next.js Frontend (Complete)
 │   │   ├── src/app/           # App Router pages (15+)
 │   │   ├── src/components/    # 20+ reusable components
+│   │   ├── src/hooks/         # 50+ API hooks
+│   │   ├── src/lib/           # API client, utilities
+│   │   ├── src/providers/     # Query & Auth providers
 │   │   └── package.json
-│   ├── api/                   # NestJS Backend (In Progress)
-│   │   ├── src/modules/       # Feature modules
+│   ├── api/                   # NestJS Backend (Complete)
+│   │   ├── src/modules/       # 12 feature modules
 │   │   ├── prisma/            # Database schema
 │   │   └── package.json
 │   ├── admin/                 # Admin Dashboard (Planned)
 │   └── mobile/                # React Native Apps (Planned)
 ├── infrastructure/            # Docker, K8s, Terraform
 ├── docs/                      # Architecture, API docs
-├── PLANNING.md                # Detailed implementation roadmap
+├── PLANNING.md                # Detailed internal roadmap
 └── README.md
 ```
 
@@ -150,6 +157,25 @@ npm run typecheck    # TypeScript check
 npm run test         # Unit tests
 npm run test:e2e     # E2E tests (Playwright)
 ```
+
+---
+
+## API Endpoints (Selected)
+
+| Module | Endpoints |
+|--------|-----------|
+| **Auth** | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh` |
+| **Users** | `GET /api/users/me`, `PUT /api/users/me`, `GET /api/users/me/bookings` |
+| **Pandits** | `GET /api/pandits/search`, `GET /api/pandits/:id`, `POST /api/pandits/profile` |
+| **Services** | `GET /api/services`, `GET /api/services/:id`, `GET /api/services/categories` |
+| **Bookings** | `POST /api/bookings`, `GET /api/bookings/me`, `POST /api/bookings/:id/confirm` |
+| **Payments** | `POST /api/payments/create`, `POST /api/payments/razorpay/order/:bookingId` |
+| **Products** | `GET /api/products`, `GET /api/products/:id`, `GET /api/products/categories` |
+| **Temples** | `GET /api/temples`, `GET /api/temples/live-darshan`, `GET /api/temples/cities` |
+| **Panchang** | `GET /api/panchang/today`, `GET /api/panchang/month/:year/:month`, `GET /api/panchang/festivals/upcoming` |
+| **Notifications** | `GET /api/notifications`, `GET /api/notifications/unread-count`, `PUT /api/notifications/:id/read` |
+| **Chat** | `GET /api/chat/rooms`, `GET /api/chat/rooms/:roomId/messages` |
+| **Admin** | `GET /api/admin/dashboard`, `GET /api/admin/analytics/revenue`, `GET /api/admin/audit-logs` |
 
 ---
 
