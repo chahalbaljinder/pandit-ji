@@ -111,6 +111,7 @@
 - [x] `UserRegistrationForm` - real API, OTP verification
 - [x] `PanditRegistrationForm` - real API, document upload
 - [x] `LiveDarshan` - real stream URLs, schedule
+- [x] `BookingConfirmation` - real API
 
 ### 3.5 Pages Updates
 - [x] `/pandits` - real search with filters
@@ -118,6 +119,7 @@
 - [x] `/services` - real categories, services
 - [x] `/products` - real catalog, cart
 - [x] `/live-darshan` - real temple streams
+- [x] `/panchang` - real calendar data
 - [x] `/profile` - real user data, bookings, wallet
 - [x] `/booking/[id]` - real booking flow
 
