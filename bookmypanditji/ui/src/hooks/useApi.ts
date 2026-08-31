@@ -36,20 +36,15 @@ import type {
   UpdateAvailabilityDto,
   PanditService,
   Review,
+  AuthTokens,
 } from '@/lib/api';
 
-// Query Keys
 export const queryKeys = {
-  // Auth
   me: ['auth', 'me'] as const,
-  
-  // Users
   profile: ['users', 'profile'] as const,
   virtualUsers: ['users', 'virtual-users'] as const,
   addresses: ['users', 'addresses'] as const,
   defaultAddress: ['users', 'addresses', 'default'] as const,
-  
-  // Pandits
   pandits: (params: PanditSearchParams) => ['pandits', 'search', params] as const,
   featuredPandits: (limit: number) => ['pandits', 'featured', limit] as const,
   panditProfile: (id: string) => ['pandits', 'profile', id] as const,
@@ -57,658 +52,1578 @@ export const queryKeys = {
   panditAvailability: ['pandits', 'me', 'availability'] as const,
   panditStats: ['pandits', 'me', 'stats'] as const,
   panditEarnings: (period: string) => ['pandits', 'me', 'earnings', period] as const,
-  
-  // Services
   services: (params: ServiceSearchParams) => ['services', 'search', params] as const,
   serviceCategories: ['services', 'categories'] as const,
   featuredServices: (limit: number) => ['services', 'featured', limit] as const,
   service: (id: string) => ['services', id] as const,
   serviceBySlug: (slug: string) => ['services', 'slug', slug] as const,
-  
-  // Bookings
   myBookings: (params: BookingSearchParams) => ['bookings', 'me', params] as const,
   upcomingBookings: (limit: number) => ['bookings', 'me', 'upcoming', limit] as const,
   bookingStats: ['bookings', 'me', 'stats'] as const,
   booking: (id: string) => ['bookings', id] as const,
   bookingByNumber: (bookingNumber: string) => ['bookings', 'number', bookingNumber] as const,
   panditBookings: (params: BookingSearchParams) => ['bookings', 'pandit', 'me', params] as const,
-  
-  // Products
   products: (params: ProductSearchParams) => ['products', 'search', params] as const,
   productCategories: ['products', 'categories'] as const,
   featuredProducts: (limit: number) => ['products', 'featured', limit] as const,
   product: (id: string) => ['products', id] as const,
   productBySlug: (slug: string) => ['products', 'slug', slug] as const,
-  
-  // Temples
   temples: (params: TempleSearchParams) => ['temples', 'search', params] as const,
   liveDarshanTemples: ['temples', 'live-darshan'] as const,
   templeCities: ['temples', 'cities'] as const,
   temple: (id: string) => ['temples', id] as const,
   templeBySlug: (slug: string) => ['temples', 'slug', slug] as const,
-  
-  // Panchang
   todaysPanchang: ['panchang', 'today'] as const,
   panchangByDate: (date: string) => ['panchang', 'date', date] as const,
   panchangRange: (fromDate: string, toDate: string) => ['panchang', 'range', fromDate, toDate] as const,
   monthlyPanchang: (year: number, month: number) => ['panchang', 'month', year, month] as const,
   upcomingFestivals: (days: number) => ['panchang', 'festivals', days] as const,
-  
-  // Payments
   paymentsByBooking: (bookingId: string) => ['payments', 'booking', bookingId] as const,
-  
-  // Notifications
   notifications: (params: { page?: number; limit?: number; status?: string }) => ['notifications', params] as const,
   unreadCount: ['notifications', 'unread-count'] as const,
-  
-  // Chat
   chatRooms: ['chat', 'rooms'] as const,
   chatMessages: (roomId: string, page: number, limit: number) => ['chat', 'messages', roomId, page, limit] as const,
+  me: ['auth', 'me'] as const,
 };
 
-// User hooks
-export function useProfile(options?: UseQueryOptions<User>) {
+export function useLogin(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.login(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+    },
+    ...options,
+  });
+}
+
+export function useRegister(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.register(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+    },
+    ...options,
+  });
+}
+
+export function useAddresses(userId: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.profile,
-    queryFn: () => api.getProfile().then(res => res.data),
-    ...options,
+    queryKey: ['users', 'addresses'],
+    queryFn: () => api.getAddresses(userId).then(res => res.data),
+    enabled: !!userId,
   });
 }
 
-export function useVirtualUsers(options?: UseQueryOptions<VirtualUser[]>) {
+export function useDefaultAddress(userId: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.virtualUsers,
-    queryFn: () => api.getVirtualUsers().then(res => res.data),
-    ...options,
+    queryKey: ['users', 'addresses', 'default'],
+    queryFn: () => api.getDefaultAddress(userId).then(res => res.data),
+    enabled: !!userId,
   });
 }
 
-export function useAddresses(options?: UseQueryOptions<Address[]>) {
-  return useQuery({
-    queryKey: queryKeys.addresses,
-    queryFn: () => api.getAddresses().then(res => res.data),
-    ...options,
-  });
-}
-
-export function useDefaultAddress(options?: UseQueryOptions<Address>) {
-  return useQuery({
-    queryKey: queryKeys.defaultAddress,
-    queryFn: () => api.getDefaultAddress().then(res => res.data),
-    ...options,
-  });
-}
-
-export function useAddVirtualUser(options?: UseMutationOptions<VirtualUser, Error, AddVirtualUserDto>) {
+export function useAddAddress(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: AddVirtualUserDto) => api.addVirtualUser(data).then(res => res.data),
+    mutationFn: (data: any) => api.addAddress(data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.virtualUsers });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] });
     },
-    ...options,
   });
 }
 
-export function useUpdateVirtualUser(options?: UseMutationOptions<VirtualUser, Error, { id: string; data: UpdateVirtualUserDto }>) {
+export function useUpdateAddress(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => api.updateVirtualUser(id, data).then(res => res.data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateAddress(id, data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.virtualUsers });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] });
     },
-    ...options,
   });
 }
 
-export function useDeleteVirtualUser(options?: UseMutationOptions<void, Error, string>) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api.deleteVirtualUser(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.virtualUsers });
-    },
-    ...options,
-  });
-}
-
-export function useAddAddress(options?: UseMutationOptions<Address, Error, AddAddressDto>) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: AddAddressDto) => api.addAddress(data).then(res => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.addresses });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultAddress });
-    },
-    ...options,
-  });
-}
-
-export function useUpdateAddress(options?: UseMutationOptions<Address, Error, { id: string; data: Partial<AddAddressDto> }>) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }) => api.updateAddress(id, data).then(res => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.addresses });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultAddress });
-    },
-    ...options,
-  });
-}
-
-export function useDeleteAddress(options?: UseMutationOptions<void, Error, string>) {
+export function useDeleteAddress(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.deleteAddress(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.addresses });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultAddress });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] });
     },
+  });
+}
+
+export function useVirtualUsers(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'virtual-users'],
+    queryFn: () => api.getVirtualUsers(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addVirtualUser(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] });
+    },
+  });
+}
+
+export function useUpdateVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateVirtualUser(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] });
+    },
+  });
+}
+
+export function useDeleteVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteVirtualUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] });
+    },
+  });
+}
+
+export function useAdminDashboard(options?: any) {
+  return useQuery({
+    queryKey: ['admin', 'dashboard'],
+    queryFn: () => api.get('/admin/dashboard').then(res => res.data),
     ...options,
   });
 }
 
-// Pandit hooks
-export function usePandits(params: PanditSearchParams, options?: UseQueryOptions<PaginatedResponse<Pandit>>) {
+export function usePandits(params: any, options?: any) {
   return useQuery({
-    queryKey: queryKeys.pandits(params),
+    queryKey: ['pandits', 'search', params],
     queryFn: () => api.searchPandits(params).then(res => res.data),
     ...options,
   });
 }
 
-export function useFeaturedPandits(limit = 6, options?: UseQueryOptions<Pandit[]>) {
+export function useFeaturedPandits(limit = 6, options?: any) {
   return useQuery({
-    queryKey: queryKeys.featuredPandits(limit),
+    queryKey: ['pandits', 'featured', limit],
     queryFn: () => api.getFeaturedPandits(limit).then(res => res.data),
     ...options,
   });
 }
 
-export function usePanditProfile(id: string, options?: UseQueryOptions<Pandit>) {
+export function usePanditProfile(id: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.panditProfile(id),
+    queryKey: ['pandits', 'profile', id],
     queryFn: () => api.getPanditProfile(id).then(res => res.data),
     enabled: !!id,
     ...options,
   });
 }
 
-export function useMyPanditProfile(options?: UseQueryOptions<Pandit>) {
+export function useMyPanditProfile(options?: any) {
   return useQuery({
-    queryKey: queryKeys.myPanditProfile,
+    queryKey: ['pandits', 'me', 'profile'],
     queryFn: () => api.getMyPanditProfile().then(res => res.data),
     ...options,
   });
 }
 
-export function useCreatePanditProfile(options?: UseMutationOptions<Pandit, Error, CreatePanditProfileDto>) {
+export function useCreatePanditProfile(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreatePanditProfileDto) => api.createPanditProfile(data).then(res => res.data),
+    mutationFn: (data: any) => api.createPanditProfile(data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.myPanditProfile });
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'profile'] });
     },
-    ...options,
   });
 }
 
-export function useUpdateMyPanditProfile(options?: UseMutationOptions<Pandit, Error, UpdatePanditProfileDto>) {
+export function useUpdateMyPanditProfile(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: UpdatePanditProfileDto) => api.updateMyPanditProfile(data).then(res => res.data),
+    mutationFn: (data: any) => api.updateMyPanditProfile(data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.myPanditProfile });
-      queryClient.invalidateQueries({ queryKey: queryKeys.panditAvailability });
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'availability'] });
     },
-    ...options,
   });
 }
 
-export function useUpdateAvailability(options?: UseMutationOptions<Pandit, Error, UpdateAvailabilityDto>) {
+export function useUpdateAvailability(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: UpdateAvailabilityDto) => api.updateAvailability(data).then(res => res.data),
+    mutationFn: (data: any) => api.updateAvailability(data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.myPanditProfile });
-      queryClient.invalidateQueries({ queryKey: queryKeys.panditAvailability });
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'availability'] });
     },
-    ...options,
   });
 }
 
-export function usePanditStats(options?: UseQueryOptions<PanditStats>) {
+export function usePanditStats(options?: any) {
   return useQuery({
-    queryKey: queryKeys.panditStats,
+    queryKey: ['pandits', 'me', 'stats'],
     queryFn: () => api.getPanditStats().then(res => res.data),
     ...options,
   });
 }
 
-export function useEarnings(period: 'week' | 'month' | 'year' = 'month', options?: UseQueryOptions<EarningsData>) {
+export function useEarnings(period: 'week' | 'month' | 'year' = 'month', options?: any) {
   return useQuery({
-    queryKey: queryKeys.panditEarnings(period),
+    queryKey: ['pandits', 'me', 'earnings', period],
     queryFn: () => api.getEarnings(period).then(res => res.data),
     ...options,
   });
 }
 
-// Service hooks
-export function useServices(params: ServiceSearchParams, options?: UseQueryOptions<PaginatedResponse<Service>>) {
+export function useServices(params: any, options?: any) {
   return useQuery({
-    queryKey: queryKeys.services(params),
+    queryKey: ['services', 'search', params],
     queryFn: () => api.searchServices(params).then(res => res.data),
     ...options,
   });
 }
 
-export function useServiceCategories(options?: UseQueryOptions<string[]>) {
+export function useServiceCategories(options?: any) {
   return useQuery({
-    queryKey: queryKeys.serviceCategories,
+    queryKey: ['services', 'categories'],
     queryFn: () => api.getServiceCategories().then(res => res.data),
     ...options,
   });
 }
 
-export function useFeaturedServices(limit = 8, options?: UseQueryOptions<Service[]>) {
+export function useFeaturedServices(limit = 8, options?: any) {
   return useQuery({
-    queryKey: queryKeys.featuredServices(limit),
+    queryKey: ['services', 'featured', limit],
     queryFn: () => api.getFeaturedServices(limit).then(res => res.data),
     ...options,
   });
 }
 
-export function useService(id: string, options?: UseQueryOptions<Service>) {
+export function useService(id: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.service(id),
+    queryKey: ['services', id],
     queryFn: () => api.getServiceById(id).then(res => res.data),
     enabled: !!id,
     ...options,
   });
 }
 
-export function useServiceBySlug(slug: string, options?: UseQueryOptions<Service>) {
+export function useServiceBySlug(slug: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.serviceBySlug(slug),
+    queryKey: ['services', 'slug', slug],
     queryFn: () => api.getServiceBySlug(slug).then(res => res.data),
     enabled: !!slug,
     ...options,
   });
 }
 
-// Booking hooks
-export function useMyBookings(params: BookingSearchParams, options?: UseQueryOptions<PaginatedResponse<Booking>>) {
+export function useMyBookings(params: any, options?: any) {
   return useQuery({
-    queryKey: queryKeys.myBookings(params),
+    queryKey: ['bookings', 'me', params],
     queryFn: () => api.getMyBookings(params).then(res => res.data),
     ...options,
   });
 }
 
-export function useUpcomingBookings(limit = 5, options?: UseQueryOptions<Booking[]>) {
+export function useUpcomingBookings(limit = 5, options?: any) {
   return useQuery({
-    queryKey: queryKeys.upcomingBookings(limit),
+    queryKey: ['bookings', 'me', 'upcoming', limit],
     queryFn: () => api.getUpcomingBookings(limit).then(res => res.data),
     ...options,
   });
 }
 
-export function useBookingStats(options?: UseQueryOptions<BookingStats>) {
+export function useBookingStats(options?: any) {
   return useQuery({
-    queryKey: queryKeys.bookingStats,
+    queryKey: ['bookings', 'me', 'stats'],
     queryFn: () => api.getBookingStats().then(res => res.data),
     ...options,
   });
 }
 
-export function useBooking(id: string, options?: UseQueryOptions<Booking>) {
+export function useBooking(id: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.booking(id),
+    queryKey: ['bookings', id],
     queryFn: () => api.getBookingById(id).then(res => res.data),
     enabled: !!id,
     ...options,
   });
 }
 
-export function useBookingByNumber(bookingNumber: string, options?: UseQueryOptions<Booking>) {
+export function useBookingByNumber(bookingNumber: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.bookingByNumber(bookingNumber),
+    queryKey: ['bookings', 'number', bookingNumber],
     queryFn: () => api.getBookingByNumber(bookingNumber).then(res => res.data),
     enabled: !!bookingNumber,
     ...options,
   });
 }
 
-export function useCreateBooking(options?: UseMutationOptions<Booking, Error, CreateBookingDto>) {
+export function useCreateBooking(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateBookingDto) => api.createBooking(data).then(res => res.data),
+    mutationFn: (data: any) => api.createBooking(data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.myBookings });
-      queryClient.invalidateQueries({ queryKey: queryKeys.bookingStats });
-      queryClient.invalidateQueries({ queryKey: queryKeys.upcomingBookings });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me', 'upcoming'] });
     },
-    ...options,
   });
 }
 
-export function useUpdateBooking(options?: UseMutationOptions<Booking, Error, { id: string; data: UpdateBookingDto }>) {
+export function useUpdateBooking(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => api.updateBooking(id, data).then(res => res.data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateBooking(id, data).then(res => res.data),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.booking(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.myBookings });
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
     },
-    ...options,
   });
 }
 
-export function useCancelBooking(options?: UseMutationOptions<Booking, Error, { id: string; reason: string }>) {
+export function useCancelBooking(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }) => api.cancelBooking(id, reason).then(res => res.data),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.cancelBooking(id, reason).then(res => res.data),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.booking(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.myBookings });
-      queryClient.invalidateQueries({ queryKey: queryKeys.bookingStats });
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me', 'stats'] });
     },
-    ...options,
   });
 }
 
-export function useConfirmBooking(options?: UseMutationOptions<Booking, Error, string>) {
+export function useConfirmBooking(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.confirmBooking(id).then(res => res.data),
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.booking(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.panditBookings });
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'pandit', 'me'] });
     },
-    ...options,
   });
 }
 
-export function useStartBooking(options?: UseMutationOptions<Booking, Error, string>) {
+export function useStartBooking(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.startBooking(id).then(res => res.data),
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.booking(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.panditBookings });
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'pandit', 'me'] });
     },
-    ...options,
   });
 }
 
-export function useCompleteBooking(options?: UseMutationOptions<Booking, Error, string>) {
+export function useCompleteBooking(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.completeBooking(id).then(res => res.data),
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.booking(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.panditBookings });
-      queryClient.invalidateQueries({ queryKey: queryKeys.panditStats });
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'pandit', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'stats'] });
     },
-    ...options,
   });
 }
 
-export function usePanditBookings(params: BookingSearchParams, options?: UseQueryOptions<PaginatedResponse<Booking>>) {
+export function usePanditBookings(params: any, options?: any) {
   return useQuery({
-    queryKey: queryKeys.panditBookings(params),
+    queryKey: ['bookings', 'pandit', 'me', params],
     queryFn: () => api.getPanditBookings(params).then(res => res.data),
     ...options,
   });
 }
 
-// Product hooks
-export function useProducts(params: ProductSearchParams, options?: UseQueryOptions<PaginatedResponse<Product>>) {
+export function useProducts(params: any, options?: any) {
   return useQuery({
-    queryKey: queryKeys.products(params),
+    queryKey: ['products', 'search', params],
     queryFn: () => api.searchProducts(params).then(res => res.data),
     ...options,
   });
 }
 
-export function useProductCategories(options?: UseQueryOptions<string[]>) {
+export function useProductCategories(options?: any) {
   return useQuery({
-    queryKey: queryKeys.productCategories,
+    queryKey: ['products', 'categories'],
     queryFn: () => api.getProductCategories().then(res => res.data),
     ...options,
   });
 }
 
-export function useFeaturedProducts(limit = 8, options?: UseQueryOptions<Product[]>) {
+export function useFeaturedProducts(limit = 8, options?: any) {
   return useQuery({
-    queryKey: queryKeys.featuredProducts(limit),
+    queryKey: ['products', 'featured', limit],
     queryFn: () => api.getFeaturedProducts(limit).then(res => res.data),
     ...options,
   });
 }
 
-export function useProduct(id: string, options?: UseQueryOptions<Product>) {
+export function useProduct(id: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.product(id),
+    queryKey: ['products', id],
     queryFn: () => api.getProductById(id).then(res => res.data),
     enabled: !!id,
     ...options,
   });
 }
 
-export function useProductBySlug(slug: string, options?: UseQueryOptions<Product>) {
+export function useProductBySlug(slug: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.productBySlug(slug),
+    queryKey: ['products', 'slug', slug],
     queryFn: () => api.getProductBySlug(slug).then(res => res.data),
     enabled: !!slug,
     ...options,
   });
 }
 
-// Temple hooks
-export function useTemples(params: TempleSearchParams, options?: UseQueryOptions<PaginatedResponse<Temple>>) {
+export function useTemples(params: any, options?: any) {
   return useQuery({
-    queryKey: queryKeys.temples(params),
+    queryKey: ['temples', 'search', params],
     queryFn: () => api.searchTemples(params).then(res => res.data),
     ...options,
   });
 }
 
-export function useLiveDarshanTemples(options?: UseQueryOptions<Temple[]>) {
+export function useLiveDarshanTemples(options?: any) {
   return useQuery({
-    queryKey: queryKeys.liveDarshanTemples,
+    queryKey: ['temples', 'live-darshan'],
     queryFn: () => api.getLiveDarshanTemples().then(res => res.data),
     ...options,
   });
 }
 
-export function useTempleCities(options?: UseQueryOptions<{ city: string; state: string }[]>) {
+export function useTempleCities(options?: any) {
   return useQuery({
-    queryKey: queryKeys.templeCities,
+    queryKey: ['temples', 'cities'],
     queryFn: () => api.getTempleCities().then(res => res.data),
     ...options,
   });
 }
 
-export function useTemple(id: string, options?: UseQueryOptions<Temple>) {
+export function useTemple(id: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.temple(id),
+    queryKey: ['temples', id],
     queryFn: () => api.getTempleById(id).then(res => res.data),
     enabled: !!id,
     ...options,
   });
 }
 
-export function useTempleBySlug(slug: string, options?: UseQueryOptions<Temple>) {
+export function useTempleBySlug(slug: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.templeBySlug(slug),
+    queryKey: ['temples', 'slug', slug],
     queryFn: () => api.getTempleBySlug(slug).then(res => res.data),
     enabled: !!slug,
     ...options,
   });
 }
 
-// Panchang hooks
-export function useTodaysPanchang(options?: UseQueryOptions<PanchangEntry>) {
+export function useTodaysPanchang(options?: any) {
   return useQuery({
-    queryKey: queryKeys.todaysPanchang,
+    queryKey: ['panchang', 'today'],
     queryFn: () => api.getTodaysPanchang().then(res => res.data),
     ...options,
   });
 }
 
-export function usePanchangByDate(date: string, options?: UseQueryOptions<PanchangEntry>) {
+export function usePanchangByDate(date: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.panchangByDate(date),
+    queryKey: ['panchang', 'date', date],
     queryFn: () => api.getPanchangByDate(date).then(res => res.data),
     enabled: !!date,
     ...options,
   });
 }
 
-export function usePanchangRange(fromDate: string, toDate: string, options?: UseQueryOptions<PanchangEntry[]>) {
+export function usePanchangRange(fromDate: string, toDate: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.panchangRange(fromDate, toDate),
+    queryKey: ['panchang', 'range', fromDate, toDate],
     queryFn: () => api.getPanchangRange(fromDate, toDate).then(res => res.data),
     enabled: !!fromDate && !!toDate,
     ...options,
   });
 }
 
-export function useMonthlyPanchang(year: number, month: number, options?: UseQueryOptions<PanchangEntry[]>) {
+export function useMonthlyPanchang(year: number, month: number, options?: any) {
   return useQuery({
-    queryKey: queryKeys.monthlyPanchang(year, month),
+    queryKey: ['panchang', 'month', year, month],
     queryFn: () => api.getMonthlyPanchang(year, month).then(res => res.data),
     enabled: !!year && !!month,
     ...options,
   });
 }
 
-export function useUpcomingFestivals(days = 30, options?: UseQueryOptions<{ date: string; festivals: string[]; vrats: string[] }[]>) {
+export function useUpcomingFestivals(days = 30, options?: any) {
   return useQuery({
-    queryKey: queryKeys.upcomingFestivals(days),
+    queryKey: ['panchang', 'festivals', days],
     queryFn: () => api.getUpcomingFestivals(days).then(res => res.data),
     ...options,
   });
 }
 
-// Payment hooks
-export function useCreatePayment(options?: UseMutationOptions<Payment, Error, CreatePaymentDto>) {
+export function useCreatePayment(options?: any) {
   return useMutation({
-    mutationFn: (data: CreatePaymentDto) => api.createPayment(data).then(res => res.data),
+    mutationFn: (data: any) => api.createPayment(data).then(res => res.data),
     ...options,
   });
 }
 
-export function useCreateRazorpayOrder(options?: UseMutationOptions<{ orderId: string; amount: number; currency: string; keyId: string }, Error, string>) {
+export function useCreateRazorpayOrder(options?: any) {
   return useMutation({
     mutationFn: (bookingId: string) => api.createRazorpayOrder(bookingId).then(res => res.data),
     ...options,
   });
 }
 
-export function usePaymentsByBooking(bookingId: string, options?: UseQueryOptions<Payment[]>) {
+export function usePaymentsByBooking(bookingId: string, options?: any) {
   return useQuery({
-    queryKey: queryKeys.paymentsByBooking(bookingId),
+    queryKey: ['payments', 'booking', bookingId],
     queryFn: () => api.getPaymentsByBooking(bookingId).then(res => res.data),
     enabled: !!bookingId,
     ...options,
   });
 }
 
-// Notification hooks
-export function useNotifications(params: { page?: number; limit?: number; status?: string }, options?: UseQueryOptions<PaginatedResponse<Notification>>) {
+export function useNotifications(params: any, options?: any) {
   return useQuery({
-    queryKey: queryKeys.notifications(params),
+    queryKey: ['notifications', params],
     queryFn: () => api.getNotifications(params).then(res => res.data),
     ...options,
   });
 }
 
-export function useUnreadCount(options?: UseQueryOptions<{ count: number }>) {
+export function useUnreadCount(options?: any) {
   return useQuery({
-    queryKey: queryKeys.unreadCount,
+    queryKey: ['notifications', 'unread-count'],
     queryFn: () => api.getUnreadCount().then(res => res.data),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
     ...options,
   });
 }
 
-export function useMarkAsRead(options?: UseMutationOptions<Notification, Error, string>) {
+export function useMarkAsRead(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.markAsRead(id).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
-    ...options,
   });
 }
 
-export function useMarkAllAsRead(options?: UseMutationOptions<{ count: number }, Error>) {
+export function useMarkAllAsRead(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => api.markAllAsRead().then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
-    ...options,
   });
 }
 
-export function useDeleteNotification(options?: UseMutationOptions<void, Error, string>) {
+export function useDeleteNotification(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.deleteNotification(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
-    ...options,
   });
 }
 
-// Chat hooks
-export function useChatRooms(options?: UseQueryOptions<ChatRoom[]>) {
+export function useChatRooms(options?: any) {
   return useQuery({
-    queryKey: queryKeys.chatRooms,
+    queryKey: ['chat', 'rooms'],
     queryFn: () => api.getChatRooms().then(res => res.data),
     ...options,
   });
 }
 
-export function useChatMessages(roomId: string, page = 1, limit = 50, options?: UseQueryOptions<PaginatedResponse<ChatMessage>>) {
+export function useChatMessages(roomId: string, page = 1, limit = 50, options?: any) {
   return useQuery({
-    queryKey: queryKeys.chatMessages(roomId, page, limit),
+    queryKey: ['chat', 'messages', roomId, page, limit],
     queryFn: () => api.getChatMessages(roomId, page, limit).then(res => res.data),
     enabled: !!roomId,
     ...options,
   });
 }
 
-// Auth mutations
-export function useLogin(options?: UseMutationOptions<{ user: User; tokens: AuthTokens }, Error, LoginDto>) {
+export function useLogin(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: LoginDto) => api.login(data).then(res => res.data),
+    mutationFn: (data: any) => api.login(data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.me });
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] });
     },
+  });
+}
+
+export function useRegister(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.register(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] });
+    },
+  });
+}
+
+export function useAddresses(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses'],
+    queryFn: () => api.getAddresses(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useDefaultAddress(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses', 'default'],
+    queryFn: () => api.getDefaultAddress(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addAddress(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] });
+    },
+  });
+}
+
+export function useUpdateAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateAddress(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] });
+    },
+  });
+}
+
+export function useDeleteAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteAddress(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] });
+    },
+  });
+}
+
+export function useVirtualUsers(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'virtual-users'],
+    queryFn: () => api.getVirtualUsers(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addVirtualUser(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useUpdateVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateVirtualUser(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useDeleteVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteVirtualUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function usePandits(params: any, options?: any) {
+  return useQuery({
+    queryKey: ['pandits', 'search', params],
+    queryFn: () => api.searchPandits(params).then(res => res.data),
     ...options,
   });
 }
 
-export function useRegister(options?: UseMutationOptions<{ user: User; tokens: AuthTokens }, Error, RegisterDto>) {
+export function useFeaturedPandits(limit = 6, options?: any) {
+  return useQuery({
+    queryKey: ['pandits', 'featured', limit],
+    queryFn: () => api.getFeaturedPandits(limit).then(res => res.data),
+    ...options,
+  });
+}
+
+export function usePanditProfile(id: string, options?: any) {
+  return useQuery({
+    queryKey: ['pandits', 'profile', id],
+    queryFn: () => api.getPanditProfile(id).then(res => res.data),
+    enabled: !!id,
+    ...options,
+  });
+}
+
+export function useMyPanditProfile(options?: any) {
+  return useQuery({
+    queryKey: ['pandits', 'me', 'profile'],
+    queryFn: () => api.getMyPanditProfile().then(res => res.data),
+    ...options,
+  });
+}
+
+export function useCreatePanditProfile(options?: any) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: RegisterDto) => api.register(data).then(res => res.data),
+    mutationFn: (data: any) => api.createPanditProfile(data).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.me });
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'profile'] }),
     },
+  });
+}
+
+export function useUpdateMyPanditProfile(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.updateMyPanditProfile(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'availability'] }),
+    },
+  });
+}
+
+export function useUpdateAvailability(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.updateAvailability(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'availability'] }),
+    },
+  );
+}
+
+export function usePanditStats(options?: any) {
+  return useQuery({
+    queryKey: ['pandits', 'me', 'stats'],
+    queryFn: () => api.getPanditStats().then(res => res.data),
     ...options,
+  });
+}
+
+export function useEarnings(period: 'week' | 'month' | 'year' = 'month', options?: any) {
+  return useQuery({
+    queryKey: ['pandits', 'me', 'earnings', period],
+    queryFn: () => api.getEarnings(period).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useServices(params: any, options?: any) {
+  return useQuery({
+    queryKey: ['services', 'search', params],
+    queryFn: () => api.searchServices(params).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useServiceCategories(options?: any) {
+  return useQuery({
+    queryKey: ['services', 'categories'],
+    queryFn: () => api.getServiceCategories().then(res => res.data),
+    ...options,
+  });
+}
+
+export function useFeaturedServices(limit = 8, options?: any) {
+  return useQuery({
+    queryKey: ['services', 'featured', limit],
+    queryFn: () => api.getFeaturedServices(limit).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useService(id: string, options?: any) {
+  return useQuery({
+    queryKey: ['services', id],
+    queryFn: () => api.getServiceById(id).then(res => res.data),
+    enabled: !!id,
+    ...options,
+  });
+}
+
+export function useServiceBySlug(slug: string, options?: any) {
+  return useQuery({
+    queryKey: ['services', 'slug', slug],
+    queryFn: () => api.getServiceBySlug(slug).then(res => res.data),
+    enabled: !!slug,
+    ...options,
+  });
+}
+
+export function useMyBookings(params: any, options?: any) {
+  return useQuery({
+    queryKey: ['bookings', 'me', params],
+    queryFn: () => api.getMyBookings(params).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useUpcomingBookings(limit = 5, options?: any) {
+  return useQuery({
+    queryKey: ['bookings', 'me', 'upcoming', limit],
+    queryFn: () => api.getUpcomingBookings(limit).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useBookingStats(options?: any) {
+  return useQuery({
+    queryKey: ['bookings', 'me', 'stats'],
+    queryFn: () => api.getBookingStats().then(res => res.data),
+    ...options,
+  });
+}
+
+export function useBooking(id: string, options?: any) {
+  return useQuery({
+    queryKey: ['bookings', id],
+    queryFn: () => api.getBookingById(id).then(res => res.data),
+    enabled: !!id,
+    ...options,
+  });
+}
+
+export function useBookingByNumber(bookingNumber: string, options?: any) {
+  return useQuery({
+    queryKey: ['bookings', 'number', bookingNumber],
+    queryFn: () => api.getBookingByNumber(bookingNumber).then(res => res.data),
+    enabled: !!bookingNumber,
+    ...options,
+  });
+}
+
+export function useCreateBooking(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.createBooking(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me', 'stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me', 'upcoming'] }),
+    },
+  });
+}
+
+export function useUpdateBooking(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateBooking(id, data).then(res => res.data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] }),
+    },
+  });
+}
+
+export function useCancelBooking(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.cancelBooking(id, reason).then(res => res.data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me', 'stats'] }),
+    },
+  });
+}
+
+export function useConfirmBooking(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.confirmBooking(id).then(res => res.data),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'pandit', 'me'] }),
+    },
+  });
+}
+
+export function useStartBooking(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.startBooking(id).then(res => res.data),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'pandit', 'me'] }),
+    },
+  });
+}
+
+export function useCompleteBooking(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.completeBooking(id).then(res => res.data),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] }),
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'pandit', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['pandits', 'me', 'stats'] }),
+    },
+  });
+}
+
+export function usePanditBookings(params: any, options?: any) {
+  return useQuery({
+    queryKey: ['bookings', 'pandit', 'me', params],
+    queryFn: () => api.getPanditBookings(params).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useProducts(params: any, options?: any) {
+  return useQuery({
+    queryKey: ['products', 'search', params],
+    queryFn: () => api.searchProducts(params).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useProductCategories(options?: any) {
+  return useQuery({
+    queryKey: ['products', 'categories'],
+    queryFn: () => api.getProductCategories().then(res => res.data),
+    ...options,
+  });
+}
+
+export function useFeaturedProducts(limit = 8, options?: any) {
+  return useQuery({
+    queryKey: ['products', 'featured', limit],
+    queryFn: () => api.getFeaturedProducts(limit).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useProduct(id: string, options?: any) {
+  return useQuery({
+    queryKey: ['products', id],
+    queryFn: () => api.getProductById(id).then(res => res.data),
+    enabled: !!id,
+    ...options,
+  });
+}
+
+export function useProductBySlug(slug: string, options?: any) {
+  return useQuery({
+    queryKey: ['products', 'slug', slug],
+    queryFn: () => api.getProductBySlug(slug).then(res => res.data),
+    enabled: !!slug,
+    ...options,
+  });
+}
+
+export function useTemples(params: any, options?: any) {
+  return useQuery({
+    queryKey: ['temples', 'search', params],
+    queryFn: () => api.searchTemples(params).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useLiveDarshanTemples(options?: any) {
+  return useQuery({
+    queryKey: ['temples', 'live-darshan'],
+    queryFn: () => api.getLiveDarshanTemples().then(res => res.data),
+    ...options,
+  });
+}
+
+export function useTempleCities(options?: any) {
+  return useQuery({
+    queryKey: ['temples', 'cities'],
+    queryFn: () => api.getTempleCities().then(res => res.data),
+    ...options,
+  });
+}
+
+export function useTemple(id: string, options?: any) {
+  return useQuery({
+    queryKey: ['temples', id],
+    queryFn: () => api.getTempleById(id).then(res => res.data),
+    enabled: !!id,
+    ...options,
+  });
+}
+
+export function useTempleBySlug(slug: string, options?: any) {
+  return useQuery({
+    queryKey: ['temples', 'slug', slug],
+    queryFn: () => api.getTempleBySlug(slug).then(res => res.data),
+    enabled: !!slug,
+    ...options,
+  });
+}
+
+export function useTodaysPanchang(options?: any) {
+  return useQuery({
+    queryKey: ['panchang', 'today'],
+    queryFn: () => api.getTodaysPanchang().then(res => res.data),
+    ...options,
+  });
+}
+
+export function usePanchangByDate(date: string, options?: any) {
+  return useQuery({
+    queryKey: ['panchang', 'date', date],
+    queryFn: () => api.getPanchangByDate(date).then(res => res.data),
+    enabled: !!date,
+    ...options,
+  });
+}
+
+export function usePanchangRange(fromDate: string, toDate: string, options?: any) {
+  return useQuery({
+    queryKey: ['panchang', 'range', fromDate, toDate],
+    queryFn: () => api.getPanchangRange(fromDate, toDate).then(res => res.data),
+    enabled: !!fromDate && !!toDate,
+    ...options,
+  });
+}
+
+export function useMonthlyPanchang(year: number, month: number, options?: any) {
+  return useQuery({
+    queryKey: ['panchang', 'month', year, month],
+    queryFn: () => api.getMonthlyPanchang(year, month).then(res => res.data),
+    enabled: !!year && !!month,
+    ...options,
+  });
+}
+
+export function useUpcomingFestivals(days = 30, options?: any) {
+  return useQuery({
+    queryKey: ['panchang', 'festivals', days],
+    queryFn: () => api.getUpcomingFestivals(days).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useCreatePayment(options?: any) {
+  return useMutation({
+    mutationFn: (data: any) => api.createPayment(data).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useCreateRazorpayOrder(options?: any) {
+  return useMutation({
+    mutationFn: (bookingId: string) => api.createRazorpayOrder(bookingId).then(res => res.data),
+    ...options,
+  });
+}
+
+export function usePaymentsByBooking(bookingId: string, options?: any) {
+  return useQuery({
+    queryKey: ['payments', 'booking', bookingId],
+    queryFn: () => api.getPaymentsByBooking(bookingId).then(res => res.data),
+    enabled: !!bookingId,
+    ...options,
+  });
+}
+
+export function useNotifications(params: any, options?: any) {
+  return useQuery({
+    queryKey: ['notifications', params],
+    queryFn: () => api.getNotifications(params).then(res => res.data),
+    ...options,
+  });
+}
+
+export function useUnreadCount(options?: any) {
+  return useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => api.getUnreadCount().then(res => res.data),
+    refetchInterval: 30000,
+    ...options,
+  });
+}
+
+export function useMarkAsRead(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.markAsRead(id).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] }),
+    },
+  });
+}
+
+export function useMarkAllAsRead(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.markAllAsRead().then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] }),
+    },
+  });
+}
+
+export function useDeleteNotification(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] }),
+    },
+  });
+}
+
+export function useChatRooms(options?: any) {
+  return useQuery({
+    queryKey: ['chat', 'rooms'],
+    queryFn: () => api.getChatRooms().then(res => res.data),
+    ...options,
+  });
+}
+
+export function useChatMessages(roomId: string, page = 1, limit = 50, options?: any) {
+  return useQuery({
+    queryKey: ['chat', 'messages', roomId, page, limit],
+    queryFn: () => api.getChatMessages(roomId, page, limit).then(res => res.data),
+    enabled: !!roomId,
+    ...options,
+  });
+}
+
+export function useLogin(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.login(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  });
+}
+
+export function useRegister(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.register(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  });
+}
+
+export function useAddresses(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses'],
+    queryFn: () => api.getAddresses(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useDefaultAddress(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses', 'default'],
+    queryFn: () => api.getDefaultAddress(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addAddress(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useUpdateAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateAddress(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useDeleteAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteAddress(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useVirtualUsers(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'virtual-users'],
+    queryFn: () => api.getVirtualUsers(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addVirtualUser(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useUpdateVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateVirtualUser(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useDeleteVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteVirtualUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useLogin(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.login(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  });
+}
+
+export function useRegister(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.register(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  );
+}
+
+export function useAddresses(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses'],
+    queryFn: () => api.getAddresses(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useDefaultAddress(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses', 'default'],
+    queryFn: () => api.getDefaultAddress(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addAddress(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useUpdateAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateAddress(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useDeleteAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteAddress(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useVirtualUsers(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'virtual-users'],
+    queryFn: () => api.getVirtualUsers(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addVirtualUser(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useUpdateVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateVirtualUser(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useDeleteVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteVirtualUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  );
+}
+
+export function useLogin(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.login(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  });
+}
+
+export function useRegister(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.register(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  );
+}
+
+export const queryKeys = {
+  me: ['auth', 'me'] as const,
+  profile: ['users', 'profile'] as const,
+  virtualUsers: ['users', 'virtual-users'] as const,
+  addresses: ['users', 'addresses'] as const,
+  defaultAddress: ['users', 'addresses', 'default'] as const,
+  pandits: (params: any) => ['pandits', 'search', params] as const,
+  featuredPandits: (limit: number) => ['pandits', 'featured', limit] as const,
+  panditProfile: (id: string) => ['pandits', 'profile', id] as const,
+  myPanditProfile: ['pandits', 'me', 'profile'] as const,
+  panditAvailability: ['pandits', 'me', 'availability'] as const,
+  panditStats: ['pandits', 'me', 'stats'] as const,
+  panditEarnings: (period: string) => ['pandits', 'me', 'earnings', period] as const,
+  services: (params: any) => ['services', 'search', params] as const,
+  serviceCategories: ['services', 'categories'] as const,
+  featuredServices: (limit: number) => ['services', 'featured', limit] as const,
+  service: (id: string) => ['services', id] as const,
+  serviceBySlug: (slug: string) => ['services', 'slug', slug] as const,
+  myBookings: (params: any) => ['bookings', 'me', params] as const,
+  upcomingBookings: (limit: number) => ['bookings', 'me', 'upcoming', limit] as const,
+  bookingStats: ['bookings', 'me', 'stats'] as const,
+  booking: (id: string) => ['bookings', id] as const,
+  bookingByNumber: (bookingNumber: string) => ['bookings', 'number', bookingNumber] as const,
+  panditBookings: (params: any) => ['bookings', 'pandit', 'me', params] as const,
+  products: (params: any) => ['products', 'search', params] as const,
+  productCategories: ['products', 'categories'] as const,
+  featuredProducts: (limit: number) => ['products', 'featured', limit] as const,
+  product: (id: string) => ['products', id] as const,
+  productBySlug: (slug: string) => ['products', 'slug', slug] as const,
+  temples: (params: any) => ['temples', 'search', params] as const,
+  liveDarshanTemples: ['temples', 'live-darshan'] as const,
+  templeCities: ['temples', 'cities'] as const,
+  temple: (id: string) => ['temples', id] as const,
+  templeBySlug: (slug: string) => ['temples', 'slug', slug] as const,
+  todaysPanchang: ['panchang', 'today'] as const,
+  panchangByDate: (date: string) => ['panchang', 'date', date] as const,
+  panchangRange: (fromDate: string, toDate: string) => ['panchang', 'range', fromDate, toDate] as const,
+  monthlyPanchang: (year: number, month: number) => ['panchang', 'month', year, month] as const,
+  upcomingFestivals: (days: number) => ['panchang', 'festivals', days] as const,
+  paymentsByBooking: (bookingId: string) => ['payments', 'booking', bookingId] as const,
+  notifications: (params: any) => ['notifications', params] as const,
+  unreadCount: ['notifications', 'unread-count'] as const,
+  chatRooms: ['chat', 'rooms'] as const,
+  chatMessages: (roomId: string, page: number, limit: number) => ['chat', 'messages', roomId, page, limit] as const,
+  me: ['auth', 'me'] as const,
+};
+
+export function useLogin(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.login(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  });
+}
+
+export function useRegister(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.register(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] }),
+    },
+  );
+}
+
+export function useAddresses(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses'],
+    queryFn: () => api.getAddresses(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useDefaultAddress(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'addresses', 'default'],
+    queryFn: () => api.getDefaultAddress(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addAddress(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useUpdateAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateAddress(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useDeleteAddress(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteAddress(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses'] }),
+      queryClient.invalidateQueries({ queryKey: ['users', 'addresses', 'default'] }),
+    },
+  });
+}
+
+export function useVirtualUsers(userId: string, options?: any) {
+  return useQuery({
+    queryKey: ['users', 'virtual-users'],
+    queryFn: () => api.getVirtualUsers(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useAddVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.addVirtualUser(data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useUpdateVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateVirtualUser(id, data).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
+  });
+}
+
+export function useDeleteVirtualUser(options?: any) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteVirtualUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'virtual-users'] }),
+    },
   });
 }

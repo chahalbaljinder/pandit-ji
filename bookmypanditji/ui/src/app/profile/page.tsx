@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProfile, useMyBookings, useUpcomingBookings, useAddresses, useVirtualUsers, useBookingStats } from '@/hooks/useApi';
 import { UserRegistrationForm } from '@/components/user/UserRegistrationForm';
-import { useAuth } from '@/providers/AuthProvider';
 
 interface TabProps {
   user: any;
@@ -200,7 +199,7 @@ function AddressesTab({ userId }: { userId: string }) {
       ) : (
         <div className="space-y-4">
           {addresses.map((address: any) => (
-            <div key={address.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 {address.isDefault ? 'border-orange-500' : 'border-gray-300'}">
+            <div key={address.id} className={`bg-white rounded-lg shadow-sm p-4 border-l-4 ${address.isDefault ? 'border-orange-500' : 'border-gray-300'}`}>
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-semibold text-gray-900">{address.name} {address.isDefault && <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded">Default</span>}</h4>
@@ -311,9 +310,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-}
-
-function useState<T>(initial: T): [T, (val: T | ((prev: T) => T)) => void] {
-  // This is a placeholder - React's useState is imported
-  return [initial, () => {}];
 }
